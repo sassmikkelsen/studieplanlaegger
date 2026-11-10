@@ -1,10 +1,10 @@
 # Studieplanlægger
 
-Et statisk værktøj til at planlægge 10 semestre med op til 30 ECTS i hvert semester. Planen gemmes lokalt i browseren og kan downloades som en redigerbar Word-fil (.docx). Word-filer downloadet fra Studieplanlægger kan importeres igen, også på en anden enhed.
+Et statisk værktøj til at planlægge 10 semestre med 30 ECTS pr. semester som udgangspunkt. Planen gemmes lokalt i browseren og kan downloades som en redigerbar Word-fil (.docx). Word-filer downloadet fra Studieplanlægger kan importeres igen, også på en anden enhed.
 
 ## Brug
 
-Åbn index.html i en moderne browser, eller host mappen som en statisk hjemmeside. Vælg størrelse og semester og tilføj en blok, eller træk en størrelse til et semester. Klik på en blok for at ændre navn, størrelse, farve eller semester. Vælg Importér Word for at åbne en tidligere downloadet plan; en import erstatter den aktuelle plan efter bekræftelse.
+Åbn index.html i en moderne browser, eller host mappen som en statisk hjemmeside. Vælg størrelse og semester og tilføj en blok, eller træk en størrelse til et semester. Træk en blok oven på en anden i samme semester for at bytte plads, eller ændr placering ved at klikke på blokken. Semestre må midlertidigt overstige 30 ECTS; de markeres, og der kan rulles vandret for at se alle blokke. Klik på en blok for at ændre navn, størrelse, farve eller semester. Vælg Importér Word for at åbne en tidligere downloadet plan; en import erstatter den aktuelle plan efter bekræftelse.
 
 ## GitHub Pages
 
