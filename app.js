@@ -79,8 +79,25 @@ $('#edit-form').addEventListener('submit',e=>{
 $('#delete').addEventListener('click',()=>{if(editing){rows[editing.row].splice(editing.index,1);save();render();$('#editor').close()}});$('#clear').addEventListener('click',()=>{if(confirm('Vil du starte en ny plan? Alle blokke i den nuværende plan bliver slettet.')){rows=Array.from({length:10},()=>[]);save();render()}});
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
-function wordCell(text,width,fill,span){return '<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/>'+(span>1?'<w:gridSpan w:val="'+span+'"/>':'')+(fill?'<w:shd w:fill="'+fill+'"/>':'')+'<w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r><w:rPr><w:sz w:val="19"/></w:rPr><w:t xml:space="preserve">'+esc(text)+'</w:t></w:r></w:p></w:tc>'}
-function documentXml(){let slots=Math.max(6,...rows.map(r=>r.reduce((n,b)=>n+b.size/5,0))),unit=Math.floor(7500/slots),width=1100+slots*unit;let grid='<w:gridCol w:w="1100"/>'+Array(slots).fill('<w:gridCol w:w="'+unit+'"/>').join('');let body=rows.map((r,i)=>{let cells=wordCell((i+1)+'. semester',1100,sum(i)>30?'FAD9D5':'F1F4EB',1);for(const b of r)cells+=wordCell(b.name+' ('+b.size+' ECTS)',b.size/5*unit,COLORS[b.color].slice(1),b.size/5);let empty=slots-sum(i)/5;if(empty)cells+=wordCell('',empty*unit,null,empty);return '<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="600" w:hRule="atLeast"/></w:trPr>'+cells+'</w:tr>'}).join('');return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:t>Studieplan</w:t></w:r></w:p><w:p><w:r><w:t>10 semestre · 30 ECTS pr. semester. Overfyldte semestre er markeret.</w:t></w:r></w:p><w:tbl><w:tblPr><w:tblW w:w="'+width+'" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="CBD4C8"/><w:left w:val="single" w:sz="4" w:color="CBD4C8"/><w:bottom w:val="single" w:sz="4" w:color="CBD4C8"/><w:right w:val="single" w:sz="4" w:color="CBD4C8"/><w:insideH w:val="single" w:sz="4" w:color="CBD4C8"/><w:insideV w:val="single" w:sz="4" w:color="CBD4C8"/></w:tblBorders><w:tblCellMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>'+grid+'</w:tblGrid>'+body+'</w:tbl><w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="900" w:right="1100" w:bottom="900" w:left="1100"/></w:sectPr></w:body></w:document>'}
+// Match the reference document: full-width table, black frame and 9.5 pt cells.
+function wordCell(text,width,fill,span,credits=null,sectionStart=false){
+  const content='<w:t xml:space="preserve">'+esc(text)+'</w:t>'+(credits===null?'':'<w:br/><w:t>('+credits+' ECTS)</w:t>');
+  return '<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/>'+(span>1?'<w:gridSpan w:val="'+span+'"/>':'')+(sectionStart?'<w:tcBorders><w:top w:val="single" w:sz="18" w:color="000000"/></w:tcBorders>':'')+(fill?'<w:shd w:fill="'+fill+'"/>':'')+'<w:vAlign w:val="center"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0" w:line="278" w:lineRule="auto"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Aptos" w:hAnsi="Aptos"/><w:sz w:val="19"/><w:lang w:val="da-DK"/></w:rPr>'+content+'</w:r></w:p></w:tc>';
+}
+function documentXml(){
+  const slots=Math.max(6,...rows.map(r=>r.reduce((n,b)=>n+b.size/5,0)));
+  const width=9706, labelWidth=1242, unit=Math.floor((width-labelWidth)/slots);
+  const grid='<w:gridCol w:w="'+labelWidth+'"/>'+Array(slots).fill('<w:gridCol w:w="'+unit+'"/>').join('');
+  const body=rows.map((r,i)=>{
+    let cells=wordCell((i+1)+'. semester',labelWidth,sum(i)>30?'FAD9D5':'F1F4EB',1,null,i===6);
+    for(const b of r)cells+=wordCell(b.name,b.size/5*unit,COLORS[b.color].slice(1),b.size/5,b.size,i===6);
+    const empty=slots-sum(i)/5;
+    if(empty)cells+=wordCell('',empty*unit,null,empty,null,i===6);
+    return '<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="600" w:hRule="atLeast"/></w:trPr>'+cells+'</w:tr>';
+  }).join('');
+  const borders=['top','left','bottom','right','insideH','insideV'].map(edge=>'<w:'+edge+' w:val="single" w:sz="'+(edge.startsWith('inside')?4:18)+'" w:color="000000"/>').join('');
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:t>Studieplan</w:t></w:r></w:p><w:p><w:r><w:t>10 semestre · 30 ECTS pr. semester. Overfyldte semestre er markeret.</w:t></w:r></w:p><w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblLayout w:type="fixed"/><w:tblBorders>'+borders+'</w:tblBorders><w:tblCellMar><w:top w:w="90" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>'+grid+'</w:tblGrid>'+body+'</w:tbl><w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="900" w:right="1100" w:bottom="900" w:left="1100"/></w:sectPr></w:body></w:document>';
+}
 function crc32(bytes){let c=0xffffffff;for(let b of bytes){c^=b;for(let j=0;j<8;j++)c=(c>>>1)^(-(c&1)&0xedb88320)}return (c^0xffffffff)>>>0}
 function zip(files){let enc=new TextEncoder(),parts=[],central=[],offset=0;function header(n){return new Uint8Array(n)}function u16(a,i,v){a[i]=v&255;a[i+1]=(v>>>8)&255}function u32(a,i,v){u16(a,i,v);u16(a,i+2,v>>>16)}for(let [name,content] of Object.entries(files)){let n=enc.encode(name),data=enc.encode(content),crc=crc32(data),h=header(30);u32(h,0,0x04034b50);u16(h,4,20);u16(h,6,0x800);u32(h,14,crc);u32(h,18,data.length);u32(h,22,data.length);u16(h,26,n.length);parts.push(h,n,data);let d=header(46);u32(d,0,0x02014b50);u16(d,4,20);u16(d,6,20);u16(d,8,0x800);u32(d,16,crc);u32(d,20,data.length);u32(d,24,data.length);u16(d,28,n.length);u32(d,42,offset);central.push(d,n);offset+=h.length+n.length+data.length}let len=central.reduce((a,b)=>a+b.length,0),end=header(22);u32(end,0,0x06054b50);u16(end,8,Object.keys(files).length);u16(end,10,Object.keys(files).length);u32(end,12,len);u32(end,16,offset);return new Blob([...parts,...central,end],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
 $('#export').addEventListener('click',()=>{let blob=zip({'[Content_Types].xml':'<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>','_rels/.rels':'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>','word/document.xml':documentXml()});let url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='studieplan.docx';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)});
@@ -126,14 +143,14 @@ function parsePlanXml(xml){
       let span=spanElement?Number(spanElement.getAttributeNS(ns,'val')):1;
       if(!Number.isInteger(span)||span<1||span>1500)throw Error('En blok i filen har en ugyldig størrelse.');
       spans+=span;
-      let value=Array.from(cell.getElementsByTagNameNS(ns,'t')).map(t=>t.textContent).join('').trim();
+      let value=Array.from(cell.getElementsByTagNameNS(ns,'*')).filter(e=>e.localName==='t'||e.localName==='br').map(e=>e.localName==='br'?' ':e.textContent).join('').trim();
       if(!value)continue;
-      let match=value.match(/^(.*) \((5|10|15|20|30) ECTS\)$/s);
+      let match=value.match(/^(.*)\s+\((5|10|15|20|30) ECTS\)$/s);
       if(!match||!match[1].trim()||Number(match[2])!==span*5||match[1].length>120)throw Error('En blok i filen kunne ikke genkendes. Brug en fil downloadet fra Studieplanlægger.');
       let shade=properties&&children(properties,'shd')[0], fill=shade&&shade.getAttributeNS(ns,'fill');
       let color=COLORS.findIndex(c=>c.slice(1).toLowerCase()===(fill||'').toLowerCase());
       if(color<0)throw Error('En blok i filen har en farve, der ikke kan importeres.');
-      blocks.push({name:match[1],size:Number(match[2]),color});
+      blocks.push({name:match[1].trim(),size:Number(match[2]),color});
     }
     if(spans<6)throw Error('Et semester i filen har en ugyldig størrelse.');
     return blocks;
